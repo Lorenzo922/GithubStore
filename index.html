@@ -2,68 +2,92 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>GitHub Store</title>
+  <title>GitHub Store - Executáveis</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background: #f0f0f0;
       padding: 20px;
     }
     h1 {
       text-align: center;
     }
-    .app-list {
-      max-width: 600px;
+    .exe-list {
+      max-width: 700px;
       margin: 30px auto;
     }
-    .app {
+    .exe {
       background: white;
-      padding: 12px 16px;
+      padding: 15px;
       margin-bottom: 10px;
       border-radius: 6px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .app a {
+    .exe a {
       color: #007bff;
       text-decoration: none;
       font-weight: bold;
     }
-    .app a:hover {
+    .exe a:hover {
       text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <h1>🛍️ GitHub Store</h1>
-  <div class="app-list" id="app-list">Carregando apps...</div>
+  <h1>🖥️ GitHub Store - Executáveis</h1>
+  <div class="exe-list" id="exe-list">Carregando arquivos .exe...</div>
 
   <script>
     const usuario = "Lorenzo922";
     const repositorio = "GithubStore";
-    const pasta = "Apps";
+    const pastaRaiz = "Apps";
 
-    async function carregarApps() {
-      const resposta = await fetch(`https://api.github.com/repos/${usuario}/${repositorio}/contents/${pasta}`);
-      const conteudo = await resposta.json();
-
-      const container = document.getElementById('app-list');
-      container.innerHTML = "";
+    async function buscarExe(caminho) {
+      const url = `https://api.github.com/repos/${usuario}/${repositorio}/contents/${caminho}`;
+      const res = await fetch(url);
+      const conteudo = await res.json();
+      let resultados = [];
 
       for (const item of conteudo) {
-        if (item.type === "dir") {
-          const nome = item.name;
-          const linkDownGit = `https://minhaskill.github.io/downgit/#/home?url=https://github.com/${usuario}/${repositorio}/tree/main/${pasta}/${nome}`;
-
-          container.innerHTML += `
-            <div class="app">
-              <a href="${linkDownGit}" target="_blank">${nome}</a>
-            </div>
-          `;
+        if (item.type === "file" && item.name.endsWith(".exe")) {
+          resultados.push({
+            nome: item.name,
+            caminho: item.path,
+            url: item.download_url
+          });
+        } else if (item.type === "dir") {
+          const subResultados = await buscarExe(item.path);
+          resultados = resultados.concat(subResultados);
         }
       }
+
+      return resultados;
     }
 
-    carregarApps();
+    async function mostrarExe() {
+      const container = document.getElementById("exe-list");
+      container.innerHTML = "Carregando arquivos .exe...";
+
+      const arquivos = await buscarExe(pastaRaiz);
+
+      if (arquivos.length === 0) {
+        container.innerHTML = "Nenhum arquivo .exe encontrado.";
+        return;
+      }
+
+      container.innerHTML = "";
+
+      arquivos.forEach(arquivo => {
+        container.innerHTML += `
+          <div class="exe">
+            <p><strong>${arquivo.nome}</strong></p>
+            <a href="${arquivo.url}" download>⬇️ Baixar</a>
+          </div>
+        `;
+      });
+    }
+
+    mostrarExe();
   </script>
 </body>
 </html>
